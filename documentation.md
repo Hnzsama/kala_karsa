@@ -376,6 +376,51 @@ graph TD
 
 ---
 
+#### DFD Level 2: Proses 4.0 (Inventaris & Stock Opname)
+
+Diagram ini menguraikan bagaimana Administrator memulai draft, menghitung discrepancy selisih aktual gudang, dan melakukan pengujian validasi ganda untuk menolak data jika berkas audit sudah berstatus terkunci (`completed`) atau terdapat input aktual bernilai negatif.
+
+```mermaid
+graph TD
+    %% Entities
+    Adm["Administrator"]
+
+    %% Sub-Processes
+    P4_1["4.1 Inisiasi Berkas Draft"]
+    P4_2["4.2 Hitung Selisih & Draft Simpan"]
+    P4_3["4.3 Validasi Nilai & Pengecekan Kunci"]
+    P4_4["4.4 Eksekusi Rekonsiliasi Stok"]
+
+    %% Data Stores
+    DB_Products[("db_products")]
+    DB_Stocks[("db_stock_opnames")]
+    DB_StockItems[("db_stock_opname_items")]
+    DB_StockMovements[("db_stock_movements")]
+
+    %% P4.1 Flows (Draft Creation)
+    Adm -->|1. Email Pembuat & Catatan Notes| P4_1
+    P4_1 -->|2. Buat Draft Rekaman Baru| DB_Stocks
+
+    %% P4.2 Flows (Count & Discrepancy)
+    Adm -->|3. Entry Varian Roti & Jumlah Hitung Aktual| P4_2
+    P4_2 -->|4. Hitung Discrepancy Selisih Aktual| P4_2
+    P4_2 -->|5. Simpan Rincian Hasil Hitung Fisik| DB_StockItems
+
+    %% P4.3 Flows (Validation & Exception)
+    Adm -->|6. Request Selesaikan Audit Opname| P4_3
+    P4_3 -->|7. Validasi Status Draft Terkini| DB_Stocks
+    DB_Stocks -->|8. Status Berkas Valid Draft| P4_3
+    P4_3 -->|9. Eror Berkas Terkunci / Input Negatif| Adm
+
+    %% P4.4 Flows (Reconciliation Execution)
+    P4_3 -->|10. Picu Eksekusi Koreksi Stok Final| P4_4
+    P4_4 -->|11. Reconcile Stok Menjadi Fisik Aktual| DB_Products
+    P4_4 -->|12. Catat Log Transaksi Opname Adjustment| DB_StockMovements
+    P4_4 -->|13. Kunci Berkas Status Menjadi Completed| DB_Stocks
+```
+
+---
+
 ## 5. Sequence Diagram
 
 Sequence Diagram menggambarkan interaksi objek berdasarkan urutan waktu operasional sistem.
@@ -471,12 +516,21 @@ sequenceDiagram
     Adm->>UI: Klik Tombol "Complete Opname"
     UI->>Ctrl: POST /stock/opnames/{id}/complete
     activate Ctrl
-    Ctrl->>DB: Update Kolom Stock di Tabel Products Sesuai Jumlah Fisik Aktual
-    Ctrl->>DB: Catat Log Penyesuaian ke Stock Movements (opname_adjustment)
-    Ctrl->>DB: Ubah Status Berkas Menjadi "Completed"
-    Ctrl-->>UI: Rekonsiliasi Berhasil (Status Terkunci)
-    deactivate Ctrl
-    UI-->>Adm: Tampilkan Status Berkas "Completed" & Update Stok Roti Rak Display
+    Ctrl->>DB: Cek Status Berkas Terkini & Validitas Input Aktual
+    activate DB
+    DB-->>Ctrl: Status Berkas (completed/draft) & Nilai Aktual
+    deactivate DB
+    alt Berkas Sudah Selesai (Status: 'completed') ATAU Ada Jumlah Aktual < 0
+        Ctrl-->>UI: Response Eror (422: Berkas Terkunci / Validasi Eror)
+        UI-->>Adm: Tampilkan Notifikasi Eror Peringatan Merah
+    else Berkas Valid Draft & Jumlah Aktual >= 0
+        Ctrl->>DB: Update Kolom Stock di Tabel Products Sesuai Jumlah Fisik Aktual
+        Ctrl->>DB: Catat Log Penyesuaian ke Stock Movements (opname_adjustment)
+        Ctrl->>DB: Ubah Status Berkas Menjadi "Completed"
+        Ctrl-->>UI: Rekonsiliasi Berhasil (Status Terkunci)
+        deactivate Ctrl
+        UI-->>Adm: Tampilkan Status Berkas "Completed" & Update Stok Roti Rak Display
+    end
     deactivate UI
 ```
 
@@ -610,15 +664,28 @@ stateDiagram-v2
     Tinjau_Daftar_Draft --> Hapus_Draft : Batalkan pemeriksaan stok
     Hapus_Draft --> [*] : Dokumen dihapus
     
-    Tinjau_Daftar_Draft --> Proses_Reconcile : Klik "Complete Opname"
+    Tinjau_Daftar_Draft --> Cek_Status_Awal : Klik "Complete Opname"
     
-    state "Proses Rekonsiliasi Database" as reconcile
-    Proses_Reconcile --> reconcile
+    state "Pengecekan Keabsahan Berkas" as check_validity {
+        [*] --> Cek_Status : Apakah status berkas 'completed'?
+        Cek_Status --> Tampilkan_Eror_Terkunci : Ya (Sudah Selesai)
+        Cek_Status --> Verifikasi_Jumlah : Tidak (Draft Valid)
+        Verifikasi_Jumlah --> Tampilkan_Eror_Negatif : Ada Jumlah Hitung Aktual < 0?
+        Verifikasi_Jumlah --> Rekonsiliasi_Database : Semua Jumlah Aktual >= 0
+    }
     
-    reconcile --> Update_Stok_Produk : Sinkronkan kolom stock produk ke aktual
-    Update_Stok_Produk --> Catat_Log_Movement : Tipe "opname_adjustment" dicatat
-    Catat_Log_Movement --> Lock_Status_Completed : Kunci berkas status "completed"
-    Lock_Status_Completed --> Selesai_Opname : Stok riil display terverifikasi
+    Cek_Status_Awal --> check_validity
+    Tampilkan_Eror_Terkunci --> [*] : Batalkan Eksekusi (Eror 422 Berkas Terkunci)
+    Tampilkan_Eror_Negatif --> [*] : Batalkan Eksekusi (Eror 422 Nilai Negatif)
+    
+    state "Proses Rekonsiliasi Database" as reconcile {
+        [*] --> Update_Stok_Produk : Sinkronkan kolom stock produk ke aktual
+        Update_Stok_Produk --> Catat_Log_Movement : Tipe "opname_adjustment" dicatat
+        Catat_Log_Movement --> Lock_Status_Completed : Kunci berkas status "completed"
+    }
+    
+    Rekonsiliasi_Database --> reconcile
+    reconcile --> Selesai_Opname : Stok riil display terverifikasi & terkunci
     Selesai_Opname --> [*]
 ```
 
