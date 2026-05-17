@@ -522,7 +522,19 @@ flowchart TD
 
 ---
 
-## 7. Database Diagram (DBML dari file migration aplikasi)
+## 7. Database Diagram & Entity Relationship Diagram (ERD)
+
+### 7.1. Entity Relationship Diagram (ERD)
+
+Berikut adalah visualisasi hubungan relasional antarentitas (*Entity Relationship Diagram*) dari database aplikasi Kala Karsa Bakery:
+
+<p align="center">
+  <img src="public/erd.png" alt="Kala Karsa Bakery ERD Diagram" width="100%" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+</p>
+
+---
+
+### 7.2. Database Markup Language (DBML)
 
 Berikut adalah definisi struktur skema relasional tabel database menggunakan format **Database Markup Language (DBML)** yang diturunkan langsung dari file migrasi aplikasi:
 
