@@ -158,7 +158,8 @@ Diagram berikut memodelkan bagaimana data mengalir di dalam sistem Kala Karsa Ba
 graph TD
     %% Entities
     Customer["Konsumen / Member"]
-    Admin["Administrator / Owner"]
+    Admin["Administrator (Staf Toko)"]
+    Owner["Store Owner (Pemilik Toko)"]
     Midtrans["Midtrans Payment Gateway"]
 
     %% Process
@@ -177,9 +178,14 @@ graph TD
     Admin -->|1. Login Kredensial & Autentikasi| System
     Admin -->|2. Kelola CRUD Produk, Kategori, Kupon| System
     Admin -->|3. Entry Data Hitung Fisik Stock Opname| System
-    Admin -->|4. Toggle Status Kanal Pembayaran| System
-    System -->|A. Statistik Laporan Keuangan & Tren SVG| System
-    System -->|B. Histori Pergerakan Stok & Selisih Opname| Admin
+    System -->|A. Histori Pergerakan Stok & Selisih Opname| Admin
+
+    %% Owner Flows
+    Owner -->|1. Login Kredensial & Autentikasi| System
+    Owner -->|2. Kelola Kolaborasi Tim & Hak Akses| System
+    Owner -->|3. Toggle Status Aktif/Nonaktif Kanal Pembayaran| System
+    System -->|A. Statistik Laporan Keuangan & Tren SVG| Owner
+    System -->|B. Laporan Audit Aktivitas Kolaborasi Tim| Owner
 
     %% Midtrans Flows
     System -->|1. Request Token Transaksi & Detail Nominal| Midtrans
@@ -205,6 +211,7 @@ graph TD
     %% Entities
     Cust["Konsumen"]
     Adm["Admin"]
+    Own["Owner"]
     Gateway["Midtrans"]
 
     %% Data Stores
@@ -219,7 +226,9 @@ graph TD
     %% P1 Flows
     Cust -->|Kredensial Login| P1
     Adm -->|Kredensial Login| P1
-    P1 -->|Validasi & Update Sesi| DB_Users
+    Own -->|Kredensial Login| P1
+    Own -->|Undang Anggota & Ubah Role Tim| P1
+    P1 -->|Validasi & Update Sesi/Tim| DB_Users
 
     %% P2 Flows
     Cust -->|Pilih Produk & Tambah Cart| P2
@@ -234,6 +243,7 @@ graph TD
     Gateway -->|IPN Callback Settlement| P3
     P3 -->|Catat Transaksi Lunas| DB_Orders
     P3 -->|Kurangi Stok & Catat Log| DB_Stocks
+    Own -->|Toggle Status Kanal Pembayaran| P3
 
     %% P4 Flows
     Adm -->|Entry Fisik Gudang| P4
@@ -392,6 +402,40 @@ sequenceDiagram
 
 ---
 
+### 5.5. Sequence Diagram Kolaborasi Tim & Manajemen Kanal Pembayaran (Owner-Only)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Own as Pemilik (Owner)
+    participant UI as Dashboard Owner Settings (React)
+    participant Ctrl as Team/Payment Controllers (Backend)
+    participant DB as Database (MySQL)
+
+    %% Flow 1: Toggle Payment Channel
+    Own->>UI: Klik Tab "Metode Pembayaran" & Klik Toggle Aktif/Nonaktif
+    activate UI
+    UI->>Ctrl: PATCH /admin/payment-channels/{id}/toggle
+    activate Ctrl
+    Ctrl->>DB: Update Kolom is_active (0 / 1) di Tabel payment_channels
+    Ctrl-->>UI: Response Sukses (Status Saluran Pembayaran Berubah)
+    deactivate Ctrl
+    UI-->>Own: Tampilkan Notifikasi Perubahan Status Saluran Pembayaran
+
+    %% Flow 2: Invite Admin Member
+    Own->>UI: Buka Menu "Kolaborasi Tim" & Input Email Calon Admin
+    UI->>Ctrl: POST /teams/invitations (Email & Role)
+    activate Ctrl
+    Ctrl->>DB: Cek Keberadaan User & Insert ke team_invitations
+    Ctrl->>Ctrl: Kirim Email Notifikasi Undangan (TeamInvitation Notification)
+    Ctrl-->>UI: Undangan Berhasil Terbuat
+    deactivate Ctrl
+    UI-->>Own: Tampilkan Status Undangan "Pending" di Tabel Tim
+    deactivate UI
+```
+
+---
+
 ## 6. Activity Diagram & Flowchart
 
 Bagian ini memodelkan logika alur proses bisnis utama sistem secara berurutan.
@@ -467,7 +511,43 @@ stateDiagram-v2
 
 ---
 
-### 6.3. Flowchart Utama Aplikasi (End-to-End E-Commerce & Admin Portal)
+### 6.3. Activity Diagram: Kolaborasi Tim & Manajemen Pembayaran (Owner-Only)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Akses_Dashboard : Owner Berhasil Login & Otentik
+    
+    state "Manajemen Kolaborasi Tim" as tim_mgmt {
+        [*] --> Input_Email_Admin : Input email calon administrator baru
+        Input_Email_Admin --> Buat_Undangan : Klik "Send Invitation"
+        Buat_Undangan --> Simpan_Database : Catat token ke table 'team_invitations'
+        Simpan_Database --> Kirim_Email : Kirim notifikasi email invitation link
+        Kirim_Email --> Menunggu_Penerimaan : Status undangan "Pending"
+        Menunggu_Penerimaan --> Penerima_Menerima : Calon admin mengklik link & register/login
+        Penerima_Menerima --> Assign_Role_Tim : Tambahkan ke team & sematkan role 'admin'
+        Assign_Role_Tim --> Selesai_Tim : Admin baru resmi tergabung aktif
+    }
+    
+    state "Manajemen Kanal Pembayaran" as payment_mgmt {
+        [*] --> Pilih_Kanal_Bayar : Tinjau daftar channel Midtrans
+        Pilih_Kanal_Bayar --> Klik_Toggle : Klik toggle aktif/nonaktif
+        Klik_Toggle --> Cek_Status_Awal : Apakah kanal berstatus aktif?
+        Cek_Status_Awal --> Nonaktifkan_Kanal : Ya -> Set is_active = 0 di database
+        Cek_Status_Awal --> Aktifkan_Kanal : Tidak -> Set is_active = 1 di database
+        Nonaktifkan_Kanal --> Selesai_Payment : Kanal diblokir dari antarmuka checkout
+        Aktifkan_Kanal --> Selesai_Payment : Kanal tersedia instan di modal Snap
+    }
+    
+    Akses_Dashboard --> tim_mgmt : Pilih menu Kolaborasi Tim
+    Akses_Dashboard --> payment_mgmt : Pilih menu Metode Pembayaran
+    
+    Selesai_Tim --> [*]
+    Selesai_Payment --> [*]
+```
+
+---
+
+### 6.4. Flowchart Utama Aplikasi (End-to-End E-Commerce & Admin Portal)
 
 ```mermaid
 flowchart TD
@@ -500,24 +580,29 @@ flowchart TD
     Cust_Review --> End_Flow([Selesai])
     
     %% Admin Flow
-    Cek_Role -->|Admin / Owner| Adm_Dash[Buka Dasbor Admin & Owner]
-    Adm_Dash --> Adm_Menu{Pilih Menu Operasional?}
-    
+    Cek_Role -->|Admin| Adm_Dash[Buka Dasbor Admin]
+    Adm_Dash --> Adm_Menu{Pilih Menu Admin?}
     Adm_Menu -->|Kelola CRUD| Adm_CRUD[Tambah/Edit/Hapus Produk, Kategori, Kupon]
     Adm_CRUD --> Adm_Dash
-    
     Adm_Menu -->|Stock Opname| Adm_Opname[Entri Hitung Fisik Aktual Gudang]
     Adm_Opname --> Adm_Reconcile[Klik Complete Opname & Rekonsiliasi]
     Adm_Reconcile --> Adm_Dash
-    
-    Adm_Menu -->|Payment Gateway| Adm_Payment[Toggle Aktif/Nonaktif Kanal Pembayaran]
-    Adm_Payment --> Adm_Dash
-    
-    Adm_Menu -->| Merchant Reply| Adm_Reply[Balas Ulasan Komentar Konsumen]
+    Adm_Menu -->|Merchant Reply| Adm_Reply[Balas Ulasan Komentar Konsumen]
     Adm_Reply --> Adm_Dash
+    Adm_Menu -->|Keluar| Adm_Logout[Sesi Logout Sistem]
+    Adm_Logout --> End_Flow
     
-    Adm_Menu -->|Keluar| Logout[Sesi Logout Sistem]
-    Logout --> End_Flow
+    %% Owner Flow
+    Cek_Role -->|Owner| Own_Dash[Buka Dasbor Owner]
+    Own_Dash --> Own_Menu{Pilih Menu Owner?}
+    Own_Menu -->|Tinjau Laporan SVG| Own_Report[Lihat Grafik Tren SVG & Omzet]
+    Own_Report --> Own_Dash
+    Own_Menu -->|Payment Gateway| Own_Payment[Toggle Aktif/Nonaktif Kanal Pembayaran]
+    Own_Payment --> Own_Dash
+    Own_Menu -->|Kolaborasi Tim| Own_Team[Undang Admin & Kelola Hak Akses]
+    Own_Team --> Own_Dash
+    Own_Menu -->|Keluar| Own_Logout[Sesi Logout Sistem]
+    Own_Logout --> End_Flow
 ```
 
 ---
