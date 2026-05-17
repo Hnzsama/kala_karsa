@@ -184,8 +184,10 @@ graph TD
     Owner -->|1. Login Kredensial & Autentikasi| System
     Owner -->|2. Kelola Kolaborasi Tim & Hak Akses| System
     Owner -->|3. Toggle Status Aktif/Nonaktif Kanal Pembayaran| System
+    Owner -->|4. Tinjau Katalog Produk & Laporan Penjualan| System
     System -->|A. Statistik Laporan Keuangan & Tren SVG| Owner
     System -->|B. Laporan Audit Aktivitas Kolaborasi Tim| Owner
+    System -->|C. Informasi Katalog Produk & Data Stok| Owner
 
     %% Midtrans Flows
     System -->|1. Request Token Transaksi & Detail Nominal| Midtrans
@@ -235,6 +237,8 @@ graph TD
     P2 -->|Baca Katalog| DB_Products
     P2 -->|Simpan Persistent Cart| DB_Carts
     DB_Carts -->|Tampilkan Detail Cart| Cust
+    Own -->|Tinjau Katalog & Stok Roti| P2
+    P2 -->|Tampilkan Daftar Katalog| Own
 
     %% P3 Flows
     Cust -->|Kirim Request Checkout| P3
@@ -259,6 +263,7 @@ graph TD
     Cust -->|Kirim Rating & Ulasan| P6
     P6 -->|Simpan Review Lunas| DB_Reviews
     Adm -->|Kirim Balasan Merchant| P6
+    Own -->|Tinjau Komentar Ulasan| P6
 ```
 
 ---
