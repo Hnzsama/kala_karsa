@@ -155,7 +155,7 @@ Aplikasi memiliki dua poros utama alur kerja dengan peran yang terbagi secara ke
 
 ---
 
-## 4. DFD (Data Flow Diagram) Level 0 & Level 1
+## 4. DFD (Data Flow Diagram) Level 0, Level 1 & Level 2
 
 Diagram berikut memodelkan bagaimana data mengalir di dalam sistem Kala Karsa Bakery.
 
@@ -271,6 +271,107 @@ graph TD
     P6 -->|Simpan Review Lunas| DB_Reviews
     Adm -->|Kirim Balasan Merchant| P6
     Own -->|Tinjau Komentar Ulasan| P6
+```
+
+---
+
+### DFD Level 2 (Detailed Decomposition Diagram)
+
+Untuk memperjelas operasi spesifik dengan granularitas tinggi, sub-bab ini memecah dua proses paling kritis di DFD Level 1 menjadi sub-proses detail:
+
+#### DFD Level 2: Proses 1.0 (Autentikasi, Akun & Kolaborasi Tim)
+
+Diagram ini menguraikan bagaimana kredensial diverifikasi, pendaftaran konsumen berjalan otomatis dengan role `'customer'`, serta bagaimana Owner mengundang Administrator secara terenkripsi ke dalam tim.
+
+```mermaid
+graph TD
+    %% Entities
+    Cust["Konsumen"]
+    Adm["Admin"]
+    Own["Owner"]
+
+    %% Sub-Processes
+    P1_1["1.1 Verifikasi Login Fortify"]
+    P1_2["1.2 Registrasi Member Baru"]
+    P1_3["1.3 Undang Admin (Owner-Only)"]
+    P1_4["1.4 Terima Undangan Tim"]
+
+    %% Data Stores
+    DB_Users[("db_users")]
+    DB_Invites[("db_team_invitations")]
+
+    %% P1.1 Flows (Login)
+    Cust -->|1. Input Username & Password| P1_1
+    Adm -->|1. Input Username & Password| P1_1
+    Own -->|1. Input Username & Password| P1_1
+    P1_1 -->|2. Cocokkan Kredensial| DB_Users
+    DB_Users -->|3. Kirim Status Validasi & Peran| P1_1
+
+    %% P1.2 Flows (Register)
+    Cust -->|1. Form Register & Nomor HP| P1_2
+    P1_2 -->|2. Buat User Baru (Role: customer)| DB_Users
+
+    %% P1.3 Flows (Invite)
+    Own -->|1. Email Calon Admin & Role| P1_3
+    P1_3 -->|2. Simpan Token Undangan| DB_Invites
+    P1_3 -->|3. Kirim Notifikasi Email Undangan| Cust_Mail["Inbox Calon Admin"]
+
+    %% P1.4 Flows (Accept)
+    Cust_Mail -->|4. Klik Link Undangan & Buat Akun| P1_4
+    P1_4 -->|5. Validasi Token & Ubah Status| DB_Invites
+    P1_4 -->|6. Tautkan Akun & Set Role 'admin'| DB_Users
+```
+
+---
+
+#### DFD Level 2: Proses 3.0 (Checkout & Pemrosesan Transaksi)
+
+Diagram ini memecah bagaimana nominal tagihan akhir dihitung secara dinamis, stok roti divalidasi ketat di database, token Midtrans Snap dipicu, dan status bayar diselesaikan secara aman via callback IPN.
+
+```mermaid
+graph TD
+    %% Entities
+    Cust["Konsumen"]
+    Own["Owner"]
+    Gateway["Midtrans Gateway"]
+
+    %% Sub-Processes
+    P3_1["3.1 Kalkulasi Biaya & Diskon"]
+    P3_2["3.2 Validasi Sisa Stok Roti"]
+    P3_3["3.3 Pembuatan Tagihan Midtrans"]
+    P3_4["3.4 Callback IPN Settlement"]
+
+    %% Data Stores
+    DB_Products[("db_products")]
+    DB_Payment[("db_payment_channels")]
+    DB_Coupons[("db_coupons")]
+    DB_Orders[("db_orders")]
+    DB_Stocks[("db_stock_movements")]
+    DB_Users[("db_users")]
+
+    %% P3.1 Flows (Kalkulasi)
+    Cust -->|1. Request Checkout & Kode Kupon| P3_1
+    P3_1 -->|2. Ambil Persentase/Flat Fee Admin| DB_Payment
+    P3_1 -->|3. Cek Masa Berlaku Kupon| DB_Coupons
+    P3_1 -->|4. Kirim Rincian Tagihan Akhir| P3_2
+
+    %% P3.2 Flows (Stok)
+    P3_2 -->|5. Cek Stok Produk Terkini| DB_Products
+    DB_Products -->|6. Status Ketersediaan Stok| P3_2
+    P3_2 -->|7. Buat Rekaman Order (Status: pending)| DB_Orders
+
+    %% P3.3 Flows (Midtrans Snap)
+    P3_2 -->|8. Picu Token Pembayaran| P3_3
+    P3_3 -->|9. Kirim Detail Nominal Bayar| Gateway
+    Gateway -->|10. Balasan Token & URL SNAP| P3_3
+    P3_3 -->|11. Tampilkan Gerbang Bayar Snap Modal| Cust
+
+    %% P3.4 Flows (IPN Callback)
+    Gateway -->|12. Notifikasi Callback Settlement| P3_4
+    P3_4 -->|13. Update Status Order (Status: paid)| DB_Orders
+    P3_4 -->|14. Kurangi Stok Produk (Type: purchase)| DB_Stocks
+    P3_4 -->|15. Tambah Poin Belanja Akumulasi| DB_Users
+    Own -->|Aksi Manual: Toggle Status Kanal Bayar| DB_Payment
 ```
 
 ---
