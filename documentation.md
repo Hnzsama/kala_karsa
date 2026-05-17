@@ -695,42 +695,42 @@ Berikut adalah rekapitulasi pengujian fitur-fitur pada aplikasi berdasarkan stan
 
 ### Matriks Kebutuhan Sistem (System Requirements Mapping)
 
-| Req ID | Deskripsi Kebutuhan Sistem |
+| &nbsp;&nbsp;&nbsp;&nbsp;Req ID&nbsp;&nbsp;&nbsp;&nbsp; | Deskripsi Kebutuhan Sistem |
 | :--- | :--- |
-| **FR-01** | Sistem harus mengizinkan pengguna untuk mendaftar akun baru dan menyimpannya ke database dengan otomatis menyematkan role `'customer'`. |
-| **FR-02** | Sistem harus mengizinkan pengguna login menggunakan email dan password terdaftar yang valid. |
-| **FR-03** | Sistem harus menolak autentikasi login jika email atau password salah. |
-| **FR-04** | Sistem harus mengarahkan pengguna yang berhasil login ke halaman dasbor utama yang sesuai dengan peran mereka. |
-| **FR-05** | Admin dan Owner dapat mengelola data master katalog (Kategori, Produk, Kupon) termasuk menambah, mengubah, dan menghapus. |
-| **FR-06** | Sistem harus memblokir akses pengguna biasa (Customer/Guest) dari fitur pengelolaan data master dan manajemen inventaris. |
-| **FR-07** | Pelanggan dapat mendaftar menjadi member aktif menggunakan nomor telepon dan berhak mengumpulkan poin belanja dari transaksi kelipatan Rp10.000. |
-| **FR-08** | Member dapat menukarkan akumulasi poin reward belanja mereka dengan kupon potongan harga secara dinamis. |
-| **FR-09** | Sistem harus memfasilitasi keranjang persistent di database (`cart_items`) dan membatasi kuantiti agar tidak melebihi persediaan stok produk. |
-| **FR-10** | Sistem harus melakukan kalkulasi order secara akurat (Subtotal - Diskon Kupon + Biaya Admin Kanal) serta memicu API modal pembayaran Midtrans Snap. |
-| **FR-11** | Sistem harus menerima callback notifikasi settlement pembayaran dari Midtrans untuk otomatis mengubah status pesanan menjadi lunas (`paid`), memotong sisa stok produk, mencatat pergerakan stok (`purchase`), dan memberikan poin reward. |
-| **FR-12** | Admin dapat memproses pencocokan inventaris fisik (**Stock Opname**), otomatis memperbarui stok produk ke database, mencatat penyesuaian stok (`opname_adjustment`), dan mengunci berkas. |
-| **FR-13** | Admin dapat merespon rating ulasan pembeli, serta mengaktifkan/menonaktifkan metode pembayaran aktif toko. |
+| <nobr>**FR-01**</nobr> | Sistem harus mengizinkan pengguna untuk mendaftar akun baru dan menyimpannya ke database dengan otomatis menyematkan role `'customer'`. |
+| <nobr>**FR-02**</nobr> | Sistem harus mengizinkan pengguna login menggunakan email dan password terdaftar yang valid. |
+| <nobr>**FR-03**</nobr> | Sistem harus menolak autentikasi login jika email atau password salah. |
+| <nobr>**FR-04**</nobr> | Sistem harus mengarahkan pengguna yang berhasil login ke halaman dasbor utama yang sesuai dengan peran mereka. |
+| <nobr>**FR-05**</nobr> | Admin dan Owner dapat mengelola data master katalog (Kategori, Produk, Kupon) termasuk menambah, mengubah, dan menghapus. |
+| <nobr>**FR-06**</nobr> | Sistem harus memblokir akses pengguna biasa (Customer/Guest) dari fitur pengelolaan data master dan manajemen inventaris. |
+| <nobr>**FR-07**</nobr> | Pelanggan dapat mendaftar menjadi member aktif menggunakan nomor telepon dan berhak mengumpulkan poin belanja dari transaksi kelipatan Rp10.000. |
+| <nobr>**FR-08**</nobr> | Member dapat menukarkan akumulasi poin reward belanja mereka dengan kupon potongan harga secara dinamis. |
+| <nobr>**FR-09**</nobr> | Sistem harus memfasilitasi keranjang persistent di database (`cart_items`) dan membatasi kuantiti agar tidak melebihi persediaan stok produk. |
+| <nobr>**FR-10**</nobr> | Sistem harus melakukan kalkulasi order secara akurat (Subtotal - Diskon Kupon + Biaya Admin Kanal) serta memicu API modal pembayaran Midtrans Snap. |
+| <nobr>**FR-11**</nobr> | Sistem harus menerima callback notifikasi settlement pembayaran dari Midtrans untuk otomatis mengubah status pesanan menjadi lunas (`paid`), memotong sisa stok produk, mencatat pergerakan stok (`purchase`), dan memberikan poin reward. |
+| <nobr>**FR-12**</nobr> | Admin dapat memproses pencocokan inventaris fisik (**Stock Opname**), otomatis memperbarui stok produk ke database, mencatat penyesuaian stok (`opname_adjustment`), dan mengunci berkas. |
+| <nobr>**FR-13**</nobr> | Admin dapat merespon rating ulasan pembeli, serta mengaktifkan/menonaktifkan metode pembayaran aktif toko. |
 
 ---
 
 ### Matriks Skenario Pengujian (Test Scenarios & Pest Execution)
 
-| ID Skenario | Kategori Fitur | Deskripsi Uji Fitur (Pest Test Suite) | Status |
+| &nbsp;&nbsp;&nbsp;&nbsp;ID Skenario&nbsp;&nbsp;&nbsp;&nbsp; | Kategori Fitur | Deskripsi Uji Fitur (Pest Test Suite) | Status |
 | :--- | :--- | :--- | :---: |
-| **TS-AUTH-01** | Pendaftaran Akun | Pendaftaran akun baru via `/register` dengan data valid & otomatis assign role `'customer'` | `✅ PASS` |
-| **TS-AUTH-02** | Autentikasi | Login sukses via portal welcome, pengujian enkripsi password, dan pembatasan rate-limiting | `✅ PASS` |
-| **TS-AUTH-03** | Proteksi Auth | Penolakan autentikasi jika email/password salah atau format tidak memenuhi syarat | `✅ PASS` |
-| **TS-CART-01** | Keranjang Belanja | Tamu diblokir dari keranjang belanja persistent sebelum login dilakukan | `✅ PASS` |
-| **TS-CART-02** | Operasional Cart | Penambahan item persistent, kalkulasi kuantiti, pembatasan kuantiti terhadap sisa stok | `✅ PASS` |
-| **TS-MEM-01** | Membership | Pelanggan mendaftar member aktif toko dengan nomor telepon dan mengubah status menjadi `'active'` | `✅ PASS` |
-| **TS-REWARD-01**| Reward Poin | Member mengklaim kupon belanja sukses dengan memotong poin belanja secara akurat di DB | `✅ PASS` |
-| **TS-CHECK-01** | Pemesanan | Checkout keranjang belanja, integrasi API Midtrans Snap, kalkulasi diskon kupon & admin fee | `✅ PASS` |
-| **TS-IPN-01** | Webhook Gateway | Callback notifikasi settlement Midtrans: update status `paid`, potong sisa stok, catat movement | `✅ PASS` |
-| **TS-OPNAME-01**| Stock Opname | Admin membuat dokumen draft opname fisik, mencocokkan stok aktual, dan memproses rekonsiliasi | `✅ PASS` |
-| **TS-REVIEW-01**| Feedback Ulasan| Konsumen mengirim ulasan rating bintang pada produk berstatus paid, admin membalas ulasan | `✅ PASS` |
-| **TS-ROLES-01** | Hak Akses | Pelanggan biasa diblokir mutlak dari mengakses CRUD Katalog & Stock Gudang (Status 403) | `✅ PASS` |
-| **TS-TEAMS-01** | Kolaborasi | Pembuatan tim toko, manajemen undangan anggota (`invitations`), pengubahan role tim oleh owner | `✅ PASS` |
-| **TS-SETTINGS-01**| Profil & Kemanan| Pembaruan data profil, validasi hapus akun, verifikasi email, serta 2FA (Two Factor Auth) | `✅ PASS` |
+| <nobr>**TS-AUTH-01**</nobr> | Pendaftaran Akun | Pendaftaran akun baru via `/register` dengan data valid & otomatis assign role `'customer'` | `✅ PASS` |
+| <nobr>**TS-AUTH-02**</nobr> | Autentikasi | Login sukses via portal welcome, pengujian enkripsi password, dan pembatasan rate-limiting | `✅ PASS` |
+| <nobr>**TS-AUTH-03**</nobr> | Proteksi Auth | Penolakan autentikasi jika email/password salah atau format tidak memenuhi syarat | `✅ PASS` |
+| <nobr>**TS-CART-01**</nobr> | Keranjang Belanja | Tamu diblokir dari keranjang belanja persistent sebelum login dilakukan | `✅ PASS` |
+| <nobr>**TS-CART-02**</nobr> | Operasional Cart | Penambahan item persistent, kalkulasi kuantiti, pembatasan kuantiti terhadap sisa stok | `✅ PASS` |
+| <nobr>**TS-MEM-01**</nobr> | Membership | Pelanggan mendaftar member aktif toko dengan nomor telepon dan mengubah status menjadi `'active'` | `✅ PASS` |
+| <nobr>**TS-REWARD-01**</nobr>| Reward Poin | Member mengklaim kupon belanja sukses dengan memotong poin belanja secara akurat di DB | `✅ PASS` |
+| <nobr>**TS-CHECK-01**</nobr> | Pemesanan | Checkout keranjang belanja, integrasi API Midtrans Snap, kalkulasi diskon kupon & admin fee | `✅ PASS` |
+| <nobr>**TS-IPN-01**</nobr> | Webhook Gateway | Callback notifikasi settlement Midtrans: update status `paid`, potong sisa stok, catat movement | `✅ PASS` |
+| <nobr>**TS-OPNAME-01**</nobr>| Stock Opname | Admin membuat dokumen draft opname fisik, mencocokkan stok aktual, dan memproses rekonsiliasi | `✅ PASS` |
+| <nobr>**TS-REVIEW-01**</nobr>| Feedback Ulasan| Konsumen mengirim ulasan rating bintang pada produk berstatus paid, admin membalas ulasan | `✅ PASS` |
+| <nobr>**TS-ROLES-01**</nobr> | Hak Akses | Pelanggan biasa diblokir mutlak dari mengakses CRUD Katalog & Stock Gudang (Status 403) | `✅ PASS` |
+| <nobr>**TS-TEAMS-01**</nobr> | Kolaborasi | Pembuatan tim toko, manajemen undangan anggota (`invitations`), pengubahan role tim oleh owner | `✅ PASS` |
+| <nobr>**TS-SETTINGS-01**</nobr>| Profil & Kemanan| Pembaruan data profil, validasi hapus akun, verifikasi email, serta 2FA (Two Factor Auth) | `✅ PASS` |
 
 ---
 
