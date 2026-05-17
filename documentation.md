@@ -309,7 +309,7 @@ graph TD
 
     %% P1.2 Flows (Register)
     Cust -->|1. Form Register & Nomor HP| P1_2
-    P1_2 -->|2. Buat User Baru (Role: customer)| DB_Users
+    P1_2 -->|2. Buat User Baru - Role customer| DB_Users
 
     %% P1.3 Flows (Invite)
     Own -->|1. Email Calon Admin & Role| P1_3
@@ -358,7 +358,7 @@ graph TD
     %% P3.2 Flows (Stok)
     P3_2 -->|5. Cek Stok Produk Terkini| DB_Products
     DB_Products -->|6. Status Ketersediaan Stok| P3_2
-    P3_2 -->|7. Buat Rekaman Order (Status: pending)| DB_Orders
+    P3_2 -->|7. Buat Rekaman Order - Status pending| DB_Orders
 
     %% P3.3 Flows (Midtrans Snap)
     P3_2 -->|8. Picu Token Pembayaran| P3_3
@@ -368,8 +368,8 @@ graph TD
 
     %% P3.4 Flows (IPN Callback)
     Gateway -->|12. Notifikasi Callback Settlement| P3_4
-    P3_4 -->|13. Update Status Order (Status: paid)| DB_Orders
-    P3_4 -->|14. Kurangi Stok Produk (Type: purchase)| DB_Stocks
+    P3_4 -->|13. Update Status Order - Status paid| DB_Orders
+    P3_4 -->|14. Kurangi Stok Produk - Tipe purchase| DB_Stocks
     P3_4 -->|15. Tambah Poin Belanja Akumulasi| DB_Users
     Own -->|Aksi Manual: Toggle Status Kanal Bayar| DB_Payment
 ```
