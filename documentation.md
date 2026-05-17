@@ -74,7 +74,9 @@ Aplikasi ini menerapkan pola arsitektur **Model-View-Controller (MVC)** modern y
 | **Model** | `UserCoupon.php` | Dompet kupon member yang melacak tanggal klaim, tanggal penggunaan, dan status validitas kupon. |
 | **Model** | `CartItem.php` | Penyimpanan item keranjang belanja persistent konsumen di dalam database MySQL. |
 | **Model** | `PaymentChannel.php` | Konfigurasi gerbang kanal pembayaran aktif beserta persentase/flat fee admin. |
-| **Controller** | `DashboardController.php` | Menghitung statistik penjualan bulanan, produk terlaris, donut chart metode pembayaran, dan menyuntikkannya ke halaman admin. |
+| **Model** | `Team.php` | Mengelola data entitas kolaborasi tim toko yang menampung Owner dan Administrator terdaftar. |
+| **Model** | `TeamInvitation.php` | Menyimpan rincian email, token, dan status undangan admin yang dikirimkan oleh Owner. |
+| **Controller** | `DashboardController.php` | Menghitung statistik penjualan bulanan, produk terlaris, donut chart metode pembayaran, dan menyuntikkannya ke halaman admin/owner. |
 | **Controller** | `ProductController.php` | Menangani daftar katalog publik serta aksi manajemen CRUD produk oleh Admin. |
 | **Controller** | `OrderController.php` | Menangani alur checkout konsumen, memvalidasi sisa stok, mendaftarkan pesanan, dan menerima notifikasi callback IPN Midtrans. |
 | **Controller** | `StockController.php` | Mengelola histori pergerakan stok barang serta pencatatan audit opname gudang. |
@@ -82,11 +84,16 @@ Aplikasi ini menerapkan pola arsitektur **Model-View-Controller (MVC)** modern y
 | **Controller** | `MembershipController.php` | Memproses aktivasi keanggotaan pelanggan baru menjadi member. |
 | **Controller** | `CouponController.php` | Mengelola klaim penukaran poin member dengan kupon diskon. |
 | **Controller** | `ReviewController.php` | Menampung ulasan rating pembeli serta memproses balasan admin. |
+| **Controller** | `PaymentChannelController.php` | Menangani aksi toggle status aktif/nonaktif saluran metode pembayaran oleh Owner. |
+| **Controller** | `TeamController.php` | Mengelola pembaruan nama kolaborasi tim toko serta pembubaran/penghapusan tim oleh Owner. |
+| **Controller** | `TeamInvitationController.php` | Memproses pembuatan token undangan kolaborasi admin baru serta pengiriman email undangan oleh Owner. |
+| **Controller** | `TeamMemberController.php` | Menangani penambahan anggota admin baru ke tim serta pengeluaran anggota dari tim oleh Owner. |
 | **View** | `welcome.tsx` | Landing page interaktif Kala Karsa dengan filter kategori, sorting produk, serta slide-out keranjang belanja instan. |
 | **View** | `checkout.tsx` | Portal transaksi interaktif pemilihan metode pembayaran dan penerapan kupon. |
-| **View** | `dashboard.tsx` | Dashboard admin yang menyajikan statistik premium dan visualisasi interaktif (Rounded SVG Bar Chart & Donut Chart). |
+| **View** | `dashboard.tsx` | Dashboard admin/owner yang menyajikan statistik premium dan visualisasi interaktif (Rounded SVG Bar Chart & Donut Chart). |
 | **View** | `orders/show.tsx` | Invoice digital premium A4 Printable lengkap dengan barcode QRIS langsung dan layout cetak instan. |
 | **View** | `admin/payment_channels.tsx` | Dasbor konfigurasi aktif/nonaktif payment channel terintegrasi menggunakan routing Wayfinder. |
+| **View** | `teams/show.tsx` | Portal kolaborasi tim toko untuk mengundang admin baru, membatalkan undangan pending, dan mengelola peran anggota oleh Owner. |
 
 ### Analisis File Migrasi Database (`database/migrations/`)
 
@@ -184,8 +191,10 @@ graph TD
     Owner -->|1. Login Kredensial & Autentikasi| System
     Owner -->|2. Kelola Kolaborasi Tim & Hak Akses| System
     Owner -->|3. Toggle Status Aktif/Nonaktif Kanal Pembayaran| System
+    Owner -->|4. Tinjau Katalog Produk & Laporan Penjualan| System
     System -->|A. Statistik Laporan Keuangan & Tren SVG| Owner
     System -->|B. Laporan Audit Aktivitas Kolaborasi Tim| Owner
+    System -->|C. Informasi Katalog Produk & Data Stok| Owner
 
     %% Midtrans Flows
     System -->|1. Request Token Transaksi & Detail Nominal| Midtrans
@@ -235,6 +244,8 @@ graph TD
     P2 -->|Baca Katalog| DB_Products
     P2 -->|Simpan Persistent Cart| DB_Carts
     DB_Carts -->|Tampilkan Detail Cart| Cust
+    Own -->|Tinjau Katalog & Stok Roti| P2
+    P2 -->|Tampilkan Daftar Katalog| Own
 
     %% P3 Flows
     Cust -->|Kirim Request Checkout| P3
@@ -259,6 +270,7 @@ graph TD
     Cust -->|Kirim Rating & Ulasan| P6
     P6 -->|Simpan Review Lunas| DB_Reviews
     Adm -->|Kirim Balasan Merchant| P6
+    Own -->|Tinjau Komentar Ulasan| P6
 ```
 
 ---
