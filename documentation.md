@@ -183,7 +183,7 @@ graph TD
 
     %% Midtrans Flows
     System -->|1. Request Token Transaksi & Detail Nominal| Midtrans
-    Midtrans -->|2. Callback Notifikasi IPN (Status Bayar)| System
+    Midtrans -->|2. Callback Notifikasi IPN - Status Bayar| System
 ```
 
 ---
